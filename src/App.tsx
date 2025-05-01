@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Globe from 'react-globe.gl'
 import { FaXTwitter, FaGithub } from 'react-icons/fa6'
-import { supabase, addLocation, getLocations, Location as SupabaseLocation } from './lib/supabase'
+import { addLocation, getLocations, Location as SupabaseLocation } from './lib/supabase'
 import './App.css'
 
 interface Point {
