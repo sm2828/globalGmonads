@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Globe from 'react-globe.gl'
-import { FaXTwitter, FaGithub } from 'react-icons/fa6'
+import { FaXTwitter, FaGithub, FaUserSecret } from 'react-icons/fa6'
 import { addLocation, getLocations, Location as SupabaseLocation } from './lib/supabase'
 import './App.css'
 
@@ -17,6 +17,8 @@ interface Point {
 function App() {
   const [points, setPoints] = useState<Point[]>([])
   const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [showAnonymousModal, setShowAnonymousModal] = useState(false)
+  const [anonymousLocation, setAnonymousLocation] = useState('')
 
   useEffect(() => {
     document.title = 'Global Gmonads'
@@ -197,6 +199,213 @@ function App() {
     }
   }
 
+  const handleAnonymousSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!anonymousLocation.trim()) return;
+
+    try {
+      // First try with OpenStreetMap Nominatim API
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(anonymousLocation)}&limit=1`
+      );
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const location = data[0];
+        const roundedLat = Math.round(parseFloat(location.lat) * 1000) / 1000;
+        const roundedLng = Math.round(parseFloat(location.lon) * 1000) / 1000;
+
+        const newPoints = [...points];
+        const existingPointIndex = points.findIndex(
+          p => Math.round(p.lat * 1000) / 1000 === roundedLat && 
+              Math.round(p.lng * 1000) / 1000 === roundedLng
+        );
+
+        if (existingPointIndex !== -1) {
+          const existingPoint = newPoints[existingPointIndex];
+          const newCount = existingPoint.count + 1;
+          newPoints[existingPointIndex] = {
+            ...existingPoint,
+            count: newCount,
+            height: calculateHeight(newCount),
+            size: 0.2 + (Math.log(newCount + 1) * 0.1),
+            location: anonymousLocation
+          };
+        } else {
+          newPoints.push({
+            lat: roundedLat,
+            lng: roundedLng,
+            size: 0.2,
+            color: '#836EF9',
+            height: calculateHeight(1),
+            count: 1,
+            location: anonymousLocation
+          });
+        }
+
+        setPoints(newPoints);
+        await savePoints(newPoints);
+        setShowAnonymousModal(false);
+        setAnonymousLocation('');
+      } else {
+        // If OpenStreetMap fails, try with BigDataCloud as fallback
+        const fallbackResponse = await fetch(
+          `https://api.bigdatacloud.net/data/geocode-client?localityLanguage=en&q=${encodeURIComponent(anonymousLocation)}`
+        );
+        const fallbackData = await fallbackResponse.json();
+
+        if (fallbackData && fallbackData.latitude && fallbackData.longitude) {
+          const roundedLat = Math.round(fallbackData.latitude * 1000) / 1000;
+          const roundedLng = Math.round(fallbackData.longitude * 1000) / 1000;
+
+          const newPoints = [...points];
+          const existingPointIndex = points.findIndex(
+            p => Math.round(p.lat * 1000) / 1000 === roundedLat && 
+                Math.round(p.lng * 1000) / 1000 === roundedLng
+          );
+
+          if (existingPointIndex !== -1) {
+            const existingPoint = newPoints[existingPointIndex];
+            const newCount = existingPoint.count + 1;
+            newPoints[existingPointIndex] = {
+              ...existingPoint,
+              count: newCount,
+              height: calculateHeight(newCount),
+              size: 0.2 + (Math.log(newCount + 1) * 0.1),
+              location: anonymousLocation
+            };
+          } else {
+            newPoints.push({
+              lat: roundedLat,
+              lng: roundedLng,
+              size: 0.2,
+              color: '#836EF9',
+              height: calculateHeight(1),
+              count: 1,
+              location: anonymousLocation
+            });
+          }
+
+          setPoints(newPoints);
+          await savePoints(newPoints);
+          setShowAnonymousModal(false);
+          setAnonymousLocation('');
+        } else {
+          alert(`Could not find coordinates for "${anonymousLocation}". Please try a different format (e.g., "New York City, NY, USA" or "London, UK").`);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing anonymous location:', error);
+      alert('Error processing location. Please try again later.');
+    }
+  };
+
+  const AnonymousModal = () => {
+    if (!showAnonymousModal) return null;
+
+    return (
+      <div 
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: 'rgba(251, 250, 249, 0.95)',
+          padding: '20px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+          zIndex: 1000,
+          minWidth: '300px',
+          border: '2px solid #200052'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <h2 style={{ 
+            color: '#200052',
+            margin: 0,
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}>
+            Anonymous Location
+          </h2>
+          <button
+            onClick={() => setShowAnonymousModal(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              cursor: 'pointer',
+              color: '#A0055D'
+            }}
+          >
+            ×
+          </button>
+        </div>
+        <form onSubmit={handleAnonymousSubmit}>
+          <input
+            type="text"
+            value={anonymousLocation}
+            onChange={(e) => setAnonymousLocation(e.target.value)}
+            placeholder="Enter city, state, or country"
+            style={{
+              width: '100%',
+              padding: '10px',
+              marginBottom: '15px',
+              borderRadius: '6px',
+              border: '1px solid #200052',
+              fontSize: '16px'
+            }}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setShowAnonymousModal(false);
+              }
+            }}
+          />
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="submit"
+              style={{
+                flex: 1,
+                padding: '10px',
+                backgroundColor: '#A0055D',
+                color: '#FBFAF9',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '16px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              gmonad
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAnonymousModal(false)}
+              style={{
+                padding: '10px',
+                backgroundColor: '#200052',
+                color: '#FBFAF9',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '16px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
   return (
     <div style={{ 
       width: '100vw', 
@@ -238,23 +447,48 @@ function App() {
           }}>
             Global Gmonads
           </h1>
-          <button 
-            onClick={addCurrentLocation}
-            style={{
-              padding: '12px 24px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              backgroundColor: '#A0055D',
-              color: '#FBFAF9',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: '600',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            gmonad
-          </button>
+          <div style={{
+            display: 'flex',
+            gap: '10px'
+          }}>
+            <button 
+              onClick={addCurrentLocation}
+              style={{
+                padding: '12px 24px',
+                fontSize: '16px',
+                cursor: 'pointer',
+                backgroundColor: '#A0055D',
+                color: '#FBFAF9',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              }}
+            >
+              gmonad
+            </button>
+            <button
+              onClick={() => setShowAnonymousModal(true)}
+              style={{
+                padding: '12px 24px',
+                fontSize: '16px',
+                cursor: 'pointer',
+                backgroundColor: '#200052',
+                color: '#FBFAF9',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <FaUserSecret /> Anonymous
+            </button>
+          </div>
         </div>
 
         {/* Social Links */}
@@ -368,6 +602,9 @@ function App() {
           />
         </div>
 
+        {/* Add the Anonymous Modal */}
+        <AnonymousModal />
+        
         {/* Leaderboard Modal */}
         <Leaderboard />
       </div>
