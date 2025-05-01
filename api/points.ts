@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } else if (req.method === 'POST') {
     try {
       const points = req.body;
-      await config.set('points', points);
+      await config.upsert([{ key: 'points', value: points }]);
       res.status(200).json({ success: true });
     } catch (error) {
       console.error('Error saving points:', error);
