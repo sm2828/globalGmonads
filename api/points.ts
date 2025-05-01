@@ -1,6 +1,6 @@
 import { createClient } from '@vercel/edge-config';
 
-const config = createClient(process.env.EDGE_CONFIG);
+const edgeConfig = createClient(process.env.EDGE_CONFIG);
 
 export const config = {
   runtime: 'edge'
@@ -9,7 +9,7 @@ export const config = {
 export default async function handler(req) {
   if (req.method === 'GET') {
     try {
-      const points = await config.get('points');
+      const points = await edgeConfig.get('points');
       return new Response(JSON.stringify(points || []), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -23,7 +23,7 @@ export default async function handler(req) {
   } else if (req.method === 'POST') {
     try {
       const points = await req.json();
-      await config.set('points', points);
+      await edgeConfig.set('points', points);
       return new Response(JSON.stringify({ success: true }), {
         headers: { 'Content-Type': 'application/json' }
       });
