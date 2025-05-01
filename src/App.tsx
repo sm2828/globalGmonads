@@ -16,13 +16,11 @@ interface Point {
 function App() {
   const [points, setPoints] = useState<Point[]>([])
   const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    document.title = 'Global Gmonads';
+    document.title = 'Global Gmonads'
     const loadPoints = async () => {
       try {
-        setIsLoading(true)
         const response = await fetch('/api/points')
         const data = await response.json()
         if (Array.isArray(data)) {
@@ -30,8 +28,6 @@ function App() {
         }
       } catch (error) {
         console.error('Error loading points:', error)
-      } finally {
-        setIsLoading(false)
       }
     }
     loadPoints()
