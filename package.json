@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@types/three": "^0.176.0",
+    "@vercel/edge-config": "^1.4.0",
+    "@vercel/node": "^5.1.15",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-globe.gl": "^2.33.2",

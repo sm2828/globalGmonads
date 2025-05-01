@@ -54,3 +54,4 @@ debug.log
 /public/dev
 *.log
 *.lock
+.env*.local

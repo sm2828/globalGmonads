@@ -16,10 +16,26 @@ interface Point {
 function App() {
   const [points, setPoints] = useState<Point[]>([])
   const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     document.title = 'Global Gmonads';
-  }, []);
+    const loadPoints = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/points')
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          setPoints(data)
+        }
+      } catch (error) {
+        console.error('Error loading points:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadPoints()
+  }, [])
 
   const calculateHeight = (count: number) => {
     // Start truly flat (0.001) and grow logarithmically
@@ -40,6 +56,20 @@ function App() {
       return 'Location unknown';
     }
   };
+
+  const savePoints = async (newPoints: Point[]) => {
+    try {
+      await fetch('/api/points', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newPoints)
+      })
+    } catch (error) {
+      console.error('Error saving points:', error)
+    }
+  }
 
   const Leaderboard = () => {
     if (!showLeaderboard) return null;
@@ -129,40 +159,37 @@ function App() {
 
         const locationString = await getLocationDetails(roundedLat, roundedLng);
 
-        setPoints(prevPoints => {
-          const existingPointIndex = prevPoints.findIndex(
-            p => Math.round(p.lat * 1000) / 1000 === roundedLat && 
-                Math.round(p.lng * 1000) / 1000 === roundedLng
-          );
+        const newPoints = [...points];
+        const existingPointIndex = points.findIndex(
+          p => Math.round(p.lat * 1000) / 1000 === roundedLat && 
+              Math.round(p.lng * 1000) / 1000 === roundedLng
+        );
 
-          if (existingPointIndex !== -1) {
-            const updatedPoints = [...prevPoints];
-            const existingPoint = updatedPoints[existingPointIndex];
-            const newCount = existingPoint.count + 1;
-            updatedPoints[existingPointIndex] = {
-              ...existingPoint,
-              count: newCount,
-              height: calculateHeight(newCount),
-              size: 0.2 + (Math.log(newCount + 1) * 0.1), // Adjust size with count too
-              location: locationString
-            };
-            return updatedPoints;
-          } else {
-            return [...prevPoints, {
-              lat: roundedLat,
-              lng: roundedLng,
-              size: 0.2, // Start with a smaller size
-              color: '#836EF9',
-              height: calculateHeight(1),
-              count: 1,
-              location: locationString
-            }];
-          }
-        });
-      }, (error) => {
-        console.error('Error getting location:', error)
-        alert('Unable to get your location. Please enable location services.')
-      })
+        if (existingPointIndex !== -1) {
+          const existingPoint = newPoints[existingPointIndex];
+          const newCount = existingPoint.count + 1;
+          newPoints[existingPointIndex] = {
+            ...existingPoint,
+            count: newCount,
+            height: calculateHeight(newCount),
+            size: 0.2 + (Math.log(newCount + 1) * 0.1),
+            location: locationString
+          };
+        } else {
+          newPoints.push({
+            lat: roundedLat,
+            lng: roundedLng,
+            size: 0.2,
+            color: '#836EF9',
+            height: calculateHeight(1),
+            count: 1,
+            location: locationString
+          });
+        }
+
+        setPoints(newPoints);
+        await savePoints(newPoints);
+      });
     } else {
       alert('Geolocation is not supported by your browser')
     }
