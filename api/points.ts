@@ -1,29 +1,38 @@
 import { createClient } from '@vercel/edge-config';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const config = createClient(process.env.EDGE_CONFIG);
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export const config = {
+  runtime: 'edge'
+};
+
+export default async function handler(req) {
   if (req.method === 'GET') {
     try {
-      console.log('Fetching points from Edge Config');
       const points = await config.get('points');
-      console.log('Points retrieved:', points);
-      res.status(200).json(points || []);
+      return new Response(JSON.stringify(points || []), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error) {
       console.error('Error fetching points:', error);
-      res.status(500).json({ error: 'Failed to fetch points' });
+      return new Response(JSON.stringify({ error: 'Failed to fetch points' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   } else if (req.method === 'POST') {
     try {
-      console.log('Received points to save:', req.body);
-      const points = req.body;
+      const points = await req.json();
       await config.set('points', points);
-      console.log('Points saved successfully');
-      res.status(200).json({ success: true });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error) {
-      console.error('Detailed error saving points:', error);
-      res.status(500).json({ error: 'Failed to save points' });
+      console.error('Error saving points:', error);
+      return new Response(JSON.stringify({ error: 'Failed to save points' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 }
