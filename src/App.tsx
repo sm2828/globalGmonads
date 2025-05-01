@@ -21,17 +21,19 @@ function App() {
     document.title = 'Global Gmonads'
     const loadPoints = async () => {
       try {
-        const response = await fetch('/api/points')
-        const data = await response.json()
+        console.log('Fetching points from API');
+        const response = await fetch('/api/points');
+        const data = await response.json();
+        console.log('Received points:', data);
         if (Array.isArray(data)) {
-          setPoints(data)
+          setPoints(data);
         }
       } catch (error) {
-        console.error('Error loading points:', error)
+        console.error('Error loading points:', error);
       }
-    }
-    loadPoints()
-  }, [])
+    };
+    loadPoints();
+  }, []);
 
   const calculateHeight = (count: number) => {
     // Start truly flat (0.001) and grow logarithmically
@@ -55,17 +57,23 @@ function App() {
 
   const savePoints = async (newPoints: Point[]) => {
     try {
-      await fetch('/api/points', {
+      console.log('Saving points:', newPoints);
+      const response = await fetch('/api/points', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(newPoints)
-      })
+      });
+      const result = await response.json();
+      console.log('Save result:', result);
+      if (!result.success) {
+        console.error('Failed to save points');
+      }
     } catch (error) {
-      console.error('Error saving points:', error)
+      console.error('Error saving points:', error);
     }
-  }
+  };
 
   const Leaderboard = () => {
     if (!showLeaderboard) return null;
@@ -154,7 +162,8 @@ function App() {
         const roundedLng = Math.round(position.coords.longitude * 1000) / 1000;
 
         const locationString = await getLocationDetails(roundedLat, roundedLng);
-
+        
+        console.log('Current points:', points);
         const newPoints = [...points];
         const existingPointIndex = points.findIndex(
           p => Math.round(p.lat * 1000) / 1000 === roundedLat && 
@@ -183,6 +192,7 @@ function App() {
           });
         }
 
+        console.log('Updating points to:', newPoints);
         setPoints(newPoints);
         await savePoints(newPoints);
       });
