@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Globe from 'react-globe.gl'
 import { FaXTwitter, FaGithub } from 'react-icons/fa6'
+import { supabase, addLocation, getLocations, Location as SupabaseLocation } from './lib/supabase'
 import './App.css'
 
 interface Point {
@@ -21,13 +22,18 @@ function App() {
     document.title = 'Global Gmonads'
     const loadPoints = async () => {
       try {
-        console.log('Fetching points from API');
-        const response = await fetch('/api/points');
-        const data = await response.json();
-        console.log('Received points:', data);
-        if (Array.isArray(data)) {
-          setPoints(data);
-        }
+        console.log('Fetching points from Supabase');
+        const locations = await getLocations();
+        const points = locations.map((loc: SupabaseLocation) => ({
+          lat: loc.latitude,
+          lng: loc.longitude,
+          size: 0.2 + (Math.log(loc.count + 1) * 0.1),
+          color: '#836EF9',
+          height: calculateHeight(loc.count),
+          count: loc.count,
+          location: loc.location_name
+        }));
+        setPoints(points);
       } catch (error) {
         console.error('Error loading points:', error);
       }
@@ -57,18 +63,8 @@ function App() {
 
   const savePoints = async (newPoints: Point[]) => {
     try {
-      console.log('Saving points:', newPoints);
-      const response = await fetch('/api/points', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newPoints)
-      });
-      const result = await response.json();
-      console.log('Save result:', result);
-      if (!result.success) {
-        console.error('Failed to save points');
+      for (const point of newPoints) {
+        await addLocation(point.lat, point.lng, point.location);
       }
     } catch (error) {
       console.error('Error saving points:', error);
