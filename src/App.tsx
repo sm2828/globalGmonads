@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Globe from 'react-globe.gl'
-import { FaXTwitter, FaGithub, FaUserSecret } from 'react-icons/fa6'
+import { FaXTwitter, FaGithub, FaUserSecret, FaGlobe } from 'react-icons/fa6'
 import { addLocation, getLocations, Location as SupabaseLocation } from './lib/supabase'
 import './App.css'
 
@@ -19,6 +19,7 @@ function App() {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [showAnonymousModal, setShowAnonymousModal] = useState(false)
   const [anonymousLocation, setAnonymousLocation] = useState('')
+  const [globeStyle, setGlobeStyle] = useState<'dark' | 'clouds'>('dark')
 
   useEffect(() => {
     document.title = 'Global Gmonads'
@@ -245,8 +246,8 @@ function App() {
 
         setPoints(newPoints);
         await savePoints(newPoints);
-        setShowAnonymousModal(false);
         setAnonymousLocation('');
+        setShowAnonymousModal(false);
       } else {
         // If OpenStreetMap fails, try with BigDataCloud as fallback
         const fallbackResponse = await fetch(
@@ -288,8 +289,8 @@ function App() {
 
           setPoints(newPoints);
           await savePoints(newPoints);
-          setShowAnonymousModal(false);
           setAnonymousLocation('');
+          setShowAnonymousModal(false);
         } else {
           alert(`Could not find coordinates for "${anonymousLocation}". Please try a different format (e.g., "New York City, NY, USA" or "London, UK").`);
         }
@@ -439,7 +440,7 @@ function App() {
         }}>
           <h1 style={{
             margin: 0,
-            color: '#200052',
+            color: globeStyle === 'clouds' ? '#FFFFFF' : '#200052',
             fontSize: '2.5rem',
             fontWeight: 'bold',
             fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -505,7 +506,7 @@ function App() {
             target="_blank" 
             rel="noopener noreferrer"
             style={{
-              color: '#0E100F',
+              color: globeStyle === 'clouds' ? '#FFFFFF' : '#0E100F',
               fontSize: '24px',
               transition: 'color 0.2s ease'
             }}
@@ -517,7 +518,7 @@ function App() {
             target="_blank" 
             rel="noopener noreferrer"
             style={{
-              color: '#0E100F',
+              color: globeStyle === 'clouds' ? '#FFFFFF' : '#0E100F',
               fontSize: '24px',
               transition: 'color 0.2s ease'
             }}
@@ -533,7 +534,7 @@ function App() {
             position: 'absolute',
             bottom: '40px',
             right: '40px',
-            color: '#0E100F',
+            color: globeStyle === 'clouds' ? '#FFFFFF' : '#0E100F',
             fontFamily: 'system-ui, -apple-system, sans-serif',
             fontSize: '14px',
             zIndex: 1,
@@ -556,8 +557,14 @@ function App() {
           justifyContent: 'center'
         }}>
           <Globe
-            globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
-            backgroundImageUrl={null}
+            globeImageUrl={globeStyle === 'dark' 
+              ? "//unpkg.com/three-globe/example/img/earth-dark.jpg"
+              : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+            }
+            backgroundImageUrl={globeStyle === 'clouds' 
+              ? "//unpkg.com/three-globe/example/img/night-sky.png"
+              : null
+            }
             backgroundColor="#FBFAF9"
             pointsData={points}
             pointAltitude="height"
@@ -601,6 +608,29 @@ function App() {
             }}
           />
         </div>
+
+        {/* Globe Style Toggle */}
+        <button
+          onClick={() => setGlobeStyle(globeStyle === 'dark' ? 'clouds' : 'dark')}
+          style={{
+            position: 'absolute',
+            top: '40px',
+            left: '40px',
+            padding: '10px',
+            backgroundColor: '#200052',
+            color: '#FBFAF9',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 1
+          }}
+        >
+          <FaGlobe />
+          {globeStyle === 'dark' ? 'Normal' : 'Dark'}
+        </button>
 
         {/* Add the Anonymous Modal */}
         <AnonymousModal />
