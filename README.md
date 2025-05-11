@@ -1,54 +1,85 @@
-# React + TypeScript + Vite
+# Gmonad Globe
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Welcome to the Gmonad Globe project! This application visualizes user-generated locations on a globe using React, TypeScript, and Vite. It allows users to track and display their "gmonads" (global moments) in a visually engaging way.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Interactive Globe**: Users can add their locations to a 3D globe and visualize their contributions.
+- **Recent Gmonads**: View a leaderboard of recent pins, including location names and timestamps.
+- **Anonymous Submissions**: Users can submit locations anonymously.
+- **Responsive Design**: The application is designed to work seamlessly on various devices.
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **React**: A JavaScript library for building user interfaces.
+- **TypeScript**: A superset of JavaScript that adds static types.
+- **Vite**: A fast build tool that provides a smooth development experience.
+- **Supabase**: A backend-as-a-service that handles data storage and retrieval.
+
+## Getting Started
+
+To run this project locally, follow these steps:
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/sm2828/globalGmonads.git
+   cd globalGmonads
+   ```
+
+2. **Install Dependencies**:
+   Make sure you have Node.js and npm installed. Then run:
+   ```bash
+   npm install
+   ```
+
+3. **Set Up Environment Variables**:
+   Create a `.env` file in the root of the project and add your Supabase credentials:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Start the Development Server**:
+   Run the following command to start the application:
+   ```bash
+   npm start
+   ```
+
+5. **Open in Browser**:
+   Navigate to `http://localhost:3000` in your web browser to view the application.
+
+## Deployment
+
+This project is hosted on Vercel. Any changes pushed to the main branch will automatically trigger a deployment.
+
+## ESLint Configuration
+
+For a production-ready application, consider updating the ESLint configuration to enable type-aware lint rules. You can refer to the following example:
 
 ```js
 export default tseslint.config({
   extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
     ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
     ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
     ...tseslint.configs.stylisticTypeChecked,
   ],
   languageOptions: {
-    // other options...
     parserOptions: {
       project: ['./tsconfig.node.json', './tsconfig.app.json'],
       tsconfigRootDir: import.meta.dirname,
     },
   },
-})
+});
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Contributing
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Contributions are welcome! If you have suggestions for improvements or new features, feel free to open an issue or submit a pull request.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+Thank you for checking out the Gmonad Globe project! We hope you enjoy using it and contributing to its development.

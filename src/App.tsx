@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import Globe from 'react-globe.gl'
+import { useState, useEffect, useRef } from 'react'
+import Globe, { GlobeMethods } from 'react-globe.gl'
 import { FaXTwitter, FaGithub, FaUserSecret, FaGlobe } from 'react-icons/fa6'
 import { addLocation, getLocations, Location as SupabaseLocation } from './lib/supabase'
 import './App.css'
@@ -12,6 +12,7 @@ interface Point {
   height: number;
   count: number;
   location?: string;
+  created_at?: string;
 }
 
 function App() {
@@ -20,6 +21,9 @@ function App() {
   const [showAnonymousModal, setShowAnonymousModal] = useState(false)
   const [anonymousLocation, setAnonymousLocation] = useState('')
   const [globeStyle, setGlobeStyle] = useState<'dark' | 'clouds'>('dark')
+  const [hoveredPoint, setHoveredPoint] = useState<Point | null>(null)
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const globeRef = useRef<GlobeMethods | undefined>(undefined)
 
   useEffect(() => {
     document.title = 'Global Gmonads'
@@ -34,7 +38,8 @@ function App() {
           color: '#836EF9',
           height: calculateHeight(loc.count),
           count: loc.count,
-          location: loc.location_name
+          location: loc.location_name,
+          created_at: loc.created_at
         }));
         setPoints(points);
       } catch (error) {
@@ -43,6 +48,20 @@ function App() {
     };
     loadPoints();
   }, []);
+
+  useEffect(() => {
+    if (!hoveredPoint) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setTooltipPosition({
+        x: e.clientX,
+        y: e.clientY
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [hoveredPoint]);
 
   const calculateHeight = (count: number) => {
     // Start truly flat (0.001) and grow logarithmically
@@ -77,7 +96,11 @@ function App() {
   const Leaderboard = () => {
     if (!showLeaderboard) return null;
 
-    const sortedPoints = [...points].sort((a, b) => b.count - a.count);
+    const sortedPoints = [...points].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    });
 
     return (
       <div style={{
@@ -106,7 +129,7 @@ function App() {
             margin: 0,
             fontFamily: 'system-ui, -apple-system, sans-serif'
           }}>
-            Gmonad Leaderboard
+            Recent Gmonads
           </h2>
           <button
             onClick={() => setShowLeaderboard(false)}
@@ -126,29 +149,45 @@ function App() {
           flexDirection: 'column',
           gap: '10px'
         }}>
-          {sortedPoints.map((point, index) => (
-            <div key={`${point.lat}-${point.lng}`} style={{
-              padding: '10px',
-              backgroundColor: index === 0 ? 'rgba(131, 110, 249, 0.1)' : 'transparent',
-              borderRadius: '8px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '1px solid rgba(14, 16, 15, 0.1)'
-            }}>
-              <div>
+          {sortedPoints.map((point) => {
+            const date = point.created_at ? new Date(point.created_at) : null;
+            const formattedDate = date ? date.toLocaleDateString() : 'Unknown date';
+            const formattedTime = date ? date.toLocaleTimeString() : '';
+            
+            return (
+              <div 
+                key={`${point.lat}-${point.lng}`} 
+                onClick={() => {
+                  setShowLeaderboard(false);
+                  focusOnPoint(point.lat, point.lng);
+                }}
+                style={{
+                  padding: '10px',
+                  backgroundColor: 'transparent',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  borderBottom: '1px solid rgba(14, 16, 15, 0.1)',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(131, 110, 249, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
                 <div style={{ fontWeight: 'bold', color: '#200052' }}>
                   {point.location || 'Unknown Location'}
                 </div>
                 <div style={{ fontSize: '14px', color: '#0E100F' }}>
-                  {point.count} gmonad{point.count !== 1 ? 's' : ''}
+                  {formattedDate}{formattedTime ? ` at ${formattedTime}` : ''}
                 </div>
               </div>
-              {index === 0 && (
-                <span style={{ color: '#A0055D', fontSize: '20px' }}>👑</span>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -230,7 +269,8 @@ function App() {
             count: newCount,
             height: calculateHeight(newCount),
             size: 0.2 + (Math.log(newCount + 1) * 0.1),
-            location: anonymousLocation
+            location: anonymousLocation,
+            created_at: new Date().toISOString()
           };
         } else {
           newPoints.push({
@@ -240,7 +280,8 @@ function App() {
             color: '#836EF9',
             height: calculateHeight(1),
             count: 1,
-            location: anonymousLocation
+            location: anonymousLocation,
+            created_at: new Date().toISOString()
           });
         }
 
@@ -273,7 +314,8 @@ function App() {
               count: newCount,
               height: calculateHeight(newCount),
               size: 0.2 + (Math.log(newCount + 1) * 0.1),
-              location: anonymousLocation
+              location: anonymousLocation,
+              created_at: new Date().toISOString()
             };
           } else {
             newPoints.push({
@@ -283,7 +325,8 @@ function App() {
               color: '#836EF9',
               height: calculateHeight(1),
               count: 1,
-              location: anonymousLocation
+              location: anonymousLocation,
+              created_at: new Date().toISOString()
             });
           }
 
@@ -405,6 +448,16 @@ function App() {
         </form>
       </div>
     );
+  };
+
+  const focusOnPoint = (lat: number, lng: number) => {
+    if (globeRef.current) {
+      globeRef.current.pointOfView({
+        lat,
+        lng,
+        altitude: 2
+      }, 1000); // 1000ms animation duration
+    }
   };
 
   return (
@@ -557,6 +610,7 @@ function App() {
           justifyContent: 'center'
         }}>
           <Globe
+            ref={globeRef}
             globeImageUrl={globeStyle === 'dark' 
               ? "//unpkg.com/three-globe/example/img/earth-dark.jpg"
               : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
@@ -575,38 +629,32 @@ function App() {
             width={window.innerWidth}
             height={window.innerHeight}
             onPointHover={(point) => {
-              if (point) {
-                const p = point as Point;
-                const tooltip = document.createElement('div');
-                tooltip.className = 'globe-tooltip';
-                tooltip.innerHTML = `
-                  <div style="
-                    background: rgba(0, 0, 0, 0.8);
-                    color: white;
-                    padding: 10px;
-                    border-radius: 4px;
-                    font-family: system-ui, -apple-system, sans-serif;
-                    font-size: 14px;
-                  ">
-                    <strong>${p.count} gmonad${p.count > 1 ? 's' : ''}</strong><br/>
-                    ${p.location || 'Location unknown'}
-                  </div>
-                `;
-                document.body.appendChild(tooltip);
-                
-                document.onmousemove = (e) => {
-                  tooltip.style.left = (e.pageX + 10) + 'px';
-                  tooltip.style.top = (e.pageY + 10) + 'px';
-                };
-              } else {
-                const tooltip = document.querySelector('.globe-tooltip');
-                if (tooltip) {
-                  tooltip.remove();
-                }
-                document.onmousemove = null;
-              }
+              setHoveredPoint(point as Point | null);
             }}
           />
+          {hoveredPoint && (
+            <div
+              className="globe-tooltip"
+              style={{
+                position: 'fixed',
+                left: tooltipPosition.x + 10,
+                top: tooltipPosition.y + 10,
+                zIndex: 1000,
+                pointerEvents: 'none',
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                padding: '10px',
+                borderRadius: '4px',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontSize: '14px',
+                transform: 'translate(-50%, -100%)',
+                marginTop: '-10px'
+              }}
+            >
+              <strong>{hoveredPoint.count} gmonad{hoveredPoint.count > 1 ? 's' : ''}</strong><br/>
+              {hoveredPoint.location || 'Location unknown'}
+            </div>
+          )}
         </div>
 
         {/* Globe Style Toggle */}
@@ -643,3 +691,4 @@ function App() {
 }
 
 export default App
+
