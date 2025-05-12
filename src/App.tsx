@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Globe, { GlobeMethods } from 'react-globe.gl'
 import { FaXTwitter, FaGithub, FaUserSecret, FaGlobe } from 'react-icons/fa6'
 import { addLocation, getLocations, Location as SupabaseLocation } from './lib/supabase'
+import InfoModal from './components/InfoModal'
 import './App.css'
 
 interface Point {
@@ -23,10 +24,17 @@ function App() {
   const [globeStyle, setGlobeStyle] = useState<'dark' | 'clouds'>('dark')
   const [hoveredPoint, setHoveredPoint] = useState<Point | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [showInfoModal, setShowInfoModal] = useState(false)
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
 
   useEffect(() => {
     document.title = 'Global Gmonads'
+    // Check if this is the first visit
+    const hasVisited = localStorage.getItem('hasVisited')
+    if (!hasVisited) {
+      setShowInfoModal(true)
+      localStorage.setItem('hasVisited', 'true')
+    }
     const loadPoints = async () => {
       try {
         console.log('Fetching points from Supabase');
@@ -468,6 +476,7 @@ function App() {
       position: 'relative',
       overflow: 'hidden',
     }}>
+      {showInfoModal && <InfoModal onClose={() => setShowInfoModal(false)} />}
       {/* Container for all content */}
       <div style={{
         position: 'absolute',
